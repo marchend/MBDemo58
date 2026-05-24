@@ -4,7 +4,7 @@ import SwiftUI
 struct AcmeBankApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            LoginView(onSignIn: { _, _, _ in })
         }
     }
 }
