@@ -100,7 +100,7 @@ final class LoginViewModelAuthTests: XCTestCase {
         XCTAssertEqual(
             vm.errorMessage,
             "Incorrect username or password. Please try again.",
-            "Per AC, .network must surface the SAME fixed banner string \u2014 the UI does not distinguish causes"
+            "Per AC, .network must surface the SAME fixed banner string \u{2014} the UI does not distinguish causes"
         )
     }
 }
