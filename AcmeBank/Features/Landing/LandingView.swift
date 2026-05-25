@@ -15,6 +15,10 @@ struct LandingView: View {
     /// auth layer. The view treats it as read-only data.
     let session: UserSession
 
+    /// Required so the environment object is propagated down to
+    /// `ThemeToggleButton` which reads it via `@EnvironmentObject`.
+    @EnvironmentObject var appTheme: AppTheme
+
     // MARK: - Derived strings (testable)
 
     /// Headline string the view renders. Pure function of the
@@ -61,6 +65,9 @@ struct LandingView: View {
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
+        .overlay(alignment: .topTrailing) {
+            ThemeToggleButton()
+        }
     }
 }
 
@@ -75,4 +82,5 @@ struct LandingView: View {
             deviceName: "Preview Device"
         )
     )
+    .environmentObject(AppTheme())
 }

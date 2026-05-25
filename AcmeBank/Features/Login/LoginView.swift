@@ -19,6 +19,10 @@ struct LoginView: View {
     @State private var showHelp = false
     @State private var showOpenAccount = false
 
+    /// Required so the environment object is propagated down to
+    /// `ThemeToggleButton` which reads it via `@EnvironmentObject`.
+    @EnvironmentObject var appTheme: AppTheme
+
     // MARK: - Body
 
     var body: some View {
@@ -43,6 +47,9 @@ struct LoginView: View {
             OktaFooterView()
         }
         .background(Color(.systemBackground))
+        .overlay(alignment: .topTrailing) {
+            ThemeToggleButton()
+        }
     }
 
     // MARK: - Subviews
@@ -145,6 +152,7 @@ struct LoginView: View {
         } label: {
             Text("Sign in")
                 .font(.headline)
+                // WCAG-AA: white-on-navyPrimary is legible in both modes
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 50)
@@ -204,4 +212,5 @@ extension ToggleStyle where Self == CheckmarkToggleStyle {
 
 #Preview {
     LoginView(onSignIn: { _, _, _ in })
+        .environmentObject(AppTheme())
 }

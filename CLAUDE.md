@@ -70,16 +70,29 @@ AcmeBank/
   Data/Mock/                  ← Mock repository implementations (deferred)
   Features/Login/             ← Login flow: View, ViewModel, Auth wiring
   Features/Landing/           ← Post-auth Landing view + RootCoordinator
+  Features/Theme/             ← AppTheme (ObservableObject), ThemeToggleButton
   Features/Home/              ← Home flow (deferred)
   Features/Accounts/          ← Accounts flow (deferred)
   Features/Transfer/          ← Transfer flow (deferred)
   Features/Cards/             ← Cards flow (deferred)
   DesignSystem/               ← Colors, Typography, Assets (deferred)
 AcmeBankTests/                ← XCTest unit tests
-AcmeBankUITests/              ← XCUITest for critical flows (login → landing)
+AcmeBankUITests/              ← XCUITest for critical flows (login → landing, dark mode)
 project.yml                   ← XcodeGen spec (source of truth — never edit .xcodeproj)
 setup.sh                      ← one-shot materialise script
 ```
+
+## Theme System
+`AppTheme` is a `final class: ObservableObject` with a single
+`@Published var colorScheme: ColorScheme = .light`. It is injected
+into the SwiftUI environment in `AcmeBankApp.swift` via:
+```swift
+.environmentObject(appTheme).preferredColorScheme(appTheme.colorScheme)
+```
+Cold launch **always** starts in Light mode — no `@AppStorage` or
+`UserDefaults` persistence is used. `ThemeToggleButton` reads
+`appTheme` via `@EnvironmentObject` and is embedded in both
+`LoginView` and `LandingView` via `.overlay(alignment: .topTrailing)`.
 
 ## Planned Architecture
 

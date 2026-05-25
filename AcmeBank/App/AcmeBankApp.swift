@@ -11,9 +11,16 @@ struct AcmeBankApp: App {
     /// sign-in".
     @StateObject private var coordinator = RootCoordinator.makeForLaunch()
 
+    /// App-wide colour scheme preference. Injected into the SwiftUI
+    /// environment so every screen can access it via `@EnvironmentObject`.
+    /// Cold launch always starts in Light mode — no persistence, by design.
+    @StateObject private var appTheme = AppTheme()
+
     var body: some Scene {
         WindowGroup {
             RootCoordinatorView(coordinator: coordinator)
+                .environmentObject(appTheme)
+                .preferredColorScheme(appTheme.colorScheme)
         }
     }
 }
