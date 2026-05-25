@@ -33,6 +33,26 @@ jobs:
     # target updates in project.yml.
     runs-on: macos-15
     timeout-minutes: 30
+    # Dummy OKTA_* values for CI so project.yml's preBuildScripts
+    # phase — which runs ``plutil -replace ... "${OKTA_ISSUER:?...}" ...``
+    # for each Okta config key — doesn't abort with
+    # ``OKTA_ISSUER: OKTA_ISSUER not set`` during PhaseScriptExecution.
+    # The ``${VAR:?msg}`` bash guard fails fatally on unset/empty vars,
+    # which is the desired behaviour on developer machines (fail loud
+    # when forgetting to source the Okta config) but would block every
+    # CI run since the runner has no Okta tenant wired in. These values
+    # are syntactically valid placeholders only — they're baked into
+    # the Debug build's Info.plist for the CI build/test pass and
+    # never used to authenticate against a real Okta tenant (CI doesn't
+    # exercise the OIDC flow against a live IdP). Real values for
+    # development / release builds are sourced from the developer's
+    # environment or a release-time secrets store; do NOT add real
+    # Okta credentials here.
+    env:
+      OKTA_ISSUER: https://ci.example.com/oauth2/default
+      OKTA_CLIENT_ID: 0oaCI0000000000000000
+      OKTA_REDIRECT_URI: com.acmebank.mobile:/callback
+      OKTA_SCOPES: "openid profile email offline_access"
     steps:
       - uses: actions/checkout@v4
 
