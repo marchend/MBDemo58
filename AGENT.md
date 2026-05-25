@@ -37,10 +37,22 @@ xcodebuild test -scheme AcmeBank \
   -destination 'platform=iOS Simulator,name=iPhone 16'
 ```
 
+## Okta build configuration
+Okta tenant values reach the app via an Xcode Run Script build phase
+("Inject Okta configuration") that copies four env vars (`OKTA_ISSUER`,
+`OKTA_CLIENT_ID`, `OKTA_REDIRECT_URI`, `OKTA_SCOPES`) into the built
+`Info.plist`, and `OktaConfig.fromBundle()` reads them at launch. The
+build-machine env vars are the **single source of truth** — no
+committed `Okta.plist`, xcconfig, or `.env` is allowed. See the
+"Okta build configuration" section of `README.md` for the two
+supported workflows (`launchctl setenv` for GUI Xcode, or
+`~/.zshrc` exports + `xed .` for shell-launched Xcode).
+
 ## Key Directory Structure
 ```
 AcmeBank/
   App/                        ← @main entry + root view (implemented)
+  Config/                     ← OktaConfig (build-time tenant config)
   Core/Auth/                  ← AuthService, KeychainStore, UserSession (deferred)
   Core/Networking/            ← APIClient, APIRouter, APIError (deferred)
   Core/Notifications/         ← AppNotification, NotificationPublisher (deferred)
@@ -87,7 +99,7 @@ Acme brand palette and type scale.
 
 ## Deferred Work (future PRs)
 - MVVM + Coordinator wiring (AppCoordinator, RootView, all feature coordinators)
-- Okta OIDC authentication (AuthService, KeychainStore, UserSession, Okta.plist)
+- Okta OIDC authentication (AuthService, KeychainStore, UserSession)
 - Networking layer (APIClient, APIRouter, APIError, RequestInterceptor)
 - Domain models (Account, Transaction, Customer, TransferRequest)
 - Repository protocols + Remote/Mock implementations
@@ -98,7 +110,7 @@ Acme brand palette and type scale.
 - XCUITest target (AcmeBankUITests) — when first critical-flow story lands
 - SwiftLint (`.swiftlint.yml`) + CI workflow (`ios-build.yml`)
 - Localisation (Localizable.strings)
-- xcconfig injection for API_BASE_URL and Okta config
+- xcconfig injection for API_BASE_URL
 
 ## Git Workflow
 
