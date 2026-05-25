@@ -37,6 +37,13 @@ xcodebuild test -scheme AcmeBank \
   -destination 'platform=iOS Simulator,name=iPhone 16'
 ```
 
+The XCUITest target (`AcmeBankUITests`) supports a `--use-fake-okta`
+launch argument that swaps in a deterministic in-memory auth service.
+Override the displayed user with `FAKE_OKTA_NAME` / `FAKE_OKTA_EMAIL`
+launch environment variables. Production builds never reach this code
+path — it is gated on the launch argument inside
+`RootCoordinator.makeForLaunch`.
+
 ## Okta build configuration
 Okta tenant values reach the app via an Xcode Run Script build phase
 ("Inject Okta configuration") that copies four env vars (`OKTA_ISSUER`,
@@ -51,9 +58,9 @@ supported workflows (`launchctl setenv` for GUI Xcode, or
 ## Key Directory Structure
 ```
 AcmeBank/
-  App/                        ← @main entry + root view (implemented)
+  App/                        ← @main entry + RootCoordinatorView
   Config/                     ← OktaConfig (build-time tenant config)
-  Core/Auth/                  ← AuthService, KeychainStore, UserSession (deferred)
+  Auth/                       ← OktaAuthService, KeychainStore, UserSession, IDTokenDecoder
   Core/Networking/            ← APIClient, APIRouter, APIError (deferred)
   Core/Notifications/         ← AppNotification, NotificationPublisher (deferred)
   Core/Extensions/            ← Decimal+Currency, Date+Greeting etc. (deferred)
@@ -61,14 +68,15 @@ AcmeBank/
   Domain/Repositories/        ← Repository protocols (deferred)
   Data/Remote/                ← API repository implementations (deferred)
   Data/Mock/                  ← Mock repository implementations (deferred)
-  Features/Login/             ← Login flow: Coordinator, View, ViewModel (deferred)
+  Features/Login/             ← Login flow: View, ViewModel, Auth wiring
+  Features/Landing/           ← Post-auth Landing view + RootCoordinator
   Features/Home/              ← Home flow (deferred)
   Features/Accounts/          ← Accounts flow (deferred)
   Features/Transfer/          ← Transfer flow (deferred)
   Features/Cards/             ← Cards flow (deferred)
   DesignSystem/               ← Colors, Typography, Assets (deferred)
-AcmeBankTests/                ← XCTest unit tests (smoke test implemented)
-AcmeBankUITests/              ← XCUITest for critical flows (deferred)
+AcmeBankTests/                ← XCTest unit tests
+AcmeBankUITests/              ← XCUITest for critical flows (login → landing)
 project.yml                   ← XcodeGen spec (source of truth — never edit .xcodeproj)
 setup.sh                      ← one-shot materialise script
 ```
@@ -76,14 +84,16 @@ setup.sh                      ← one-shot materialise script
 ## Planned Architecture
 
 ### MVVM + Coordinator
-- **View** — SwiftUI `View` struct; renders ViewModel state, no business logic. *(deferred)*
-- **ViewModel** — `final class: ObservableObject`; `@Published` state, calls repositories. *(deferred)*
-- **Coordinator** — `ObservableObject` that owns `NavigationPath`; handles all navigation. *(deferred)*
+- **View** — SwiftUI `View` struct; renders ViewModel state, no business logic.
+- **ViewModel** — `final class: ObservableObject`; `@Published` state, calls repositories.
+- **Coordinator** — `ObservableObject` owning auth state / `NavigationPath`; handles navigation.
 - **Repository protocols** — in `Domain/`; concrete implementations in `Data/`. *(deferred)*
 
-### Auth (Okta OIDC) *(deferred)*
-`AuthService` drives the Okta browser flow, decodes ID token claims, persists
-tokens in Keychain via `KeychainStore`, and returns `UserSession`.
+### Auth (Okta OIDC)
+`OktaAuthService` drives the Okta direct-auth flow, decodes ID-token claims
+via `IDTokenDecoder`, persists tokens in Keychain via `KeychainStore`, and
+returns a `UserSession`. `RootCoordinator` owns the published `session` and
+switches the root view between `LoginView` and `LandingView(session:)`.
 
 ### Networking *(deferred)*
 `APIClient` wraps `URLSession`; `APIRouter` is an endpoint enum; `RequestInterceptor`
@@ -98,16 +108,13 @@ Typed `Notification.Name` constants in `AppNotification`; posted via
 Acme brand palette and type scale.
 
 ## Deferred Work (future PRs)
-- MVVM + Coordinator wiring (AppCoordinator, RootView, all feature coordinators)
-- Okta OIDC authentication (AuthService, KeychainStore, UserSession)
 - Networking layer (APIClient, APIRouter, APIError, RequestInterceptor)
 - Domain models (Account, Transaction, Customer, TransferRequest)
 - Repository protocols + Remote/Mock implementations
-- Feature screens: Login, Home, Accounts, Transfer, Cards, More
+- Feature screens beyond Login/Landing: Home, Accounts, Transfer, Cards, More
 - Design system (Colors, Typography, Assets.xcassets)
 - Internal notifications (AppNotification, NotificationPublisher, NotificationKey)
 - Swift extensions (Decimal+Currency, Date+Greeting, String+Initials)
-- XCUITest target (AcmeBankUITests) — when first critical-flow story lands
 - SwiftLint (`.swiftlint.yml`) + CI workflow (`ios-build.yml`)
 - Localisation (Localizable.strings)
 - xcconfig injection for API_BASE_URL
