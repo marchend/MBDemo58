@@ -201,6 +201,25 @@ jobs:
           echo "destination=platform=iOS Simulator,id=$SIM_UDID" >> "$GITHUB_OUTPUT"
 
       - name: Test
+        # Ad-hoc simulator signing (CODE_SIGN_IDENTITY=-) instead of the
+        # "no signing at all" flags used by the Build step. Rationale:
+        # disabling code signing entirely (CODE_SIGNING_ALLOWED=NO) makes
+        # xcodebuild skip the codesign phase, and the codesign phase is
+        # what embeds the .entitlements file into the simulator binary.
+        # Without that, the test-host app launches with no
+        # ``application-identifier`` / ``keychain-access-groups``
+        # entitlement, and every SecItem* call returns -34018 on
+        # Xcode 16+/iOS 18 simulators (the legacy "no entitlements →
+        # shared global keychain" fallback was removed). The ``-``
+        # identity is xcodebuild's built-in ad-hoc simulator signing —
+        # needs no Apple Developer cert or provisioning profile but
+        # DOES run the codesign phase so entitlements actually take
+        # effect. CODE_SIGNING_REQUIRED=NO still gates the "must be a
+        # real distribution identity" check that would otherwise demand
+        # a paid signing cert. Keep the Build step on the no-signing
+        # path: no XCTest host runs there, no keychain access is
+        # exercised, and changing it risks breaking the known-good
+        # build path that already passes CI.
         env:
           SCHEME: ${{ steps.scheme.outputs.scheme }}
           SIM_DEST: ${{ steps.sim.outputs.destination }}
@@ -215,8 +234,9 @@ jobs:
             -scheme "$SCHEME" \
             -destination "$SIM_DEST" \
             -configuration Debug \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_ALLOWED=YES \
             CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=- \
             test 2>&1 | tee xcodebuild-test.log
           if grep -q "^** TEST FAILED **" xcodebuild-test.log; then
             echo "::error::xcodebuild test failed (see log above)" >&2
