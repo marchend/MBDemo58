@@ -82,9 +82,13 @@ struct LiveDirectAuthFlow: DirectAuthFlowPerforming {
             scope: config.scopes.joined(separator: " ")
         )
 
+        // `start(_:with:)` accepts a `PrimaryFactor` value directly;
+        // `.password(_)` IS the primary factor case, so no outer
+        // `.primary(...)` wrapper is needed (and the enum has no such
+        // case).
         let status = try await flow.start(
             username,
-            with: .primary(.password(password))
+            with: .password(password)
         )
 
         switch status {
