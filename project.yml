@@ -48,6 +48,9 @@ targets:
     sources: [AcmeBankTests]
     dependencies:
       - target: AcmeBank
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   AcmeBank:
     build:
