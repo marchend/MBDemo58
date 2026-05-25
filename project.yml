@@ -51,9 +51,19 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+  AcmeBankUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [AcmeBankUITests]
+    dependencies:
+      - target: AcmeBank
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: AcmeBank
 schemes:
   AcmeBank:
     build:
       targets: { AcmeBank: all }
     test:
-      targets: [AcmeBankTests]
+      targets: [AcmeBankTests, AcmeBankUITests]
