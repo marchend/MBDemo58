@@ -42,8 +42,8 @@ final class RootCoordinator: ObservableObject {
 
     /// The auth service used when the login screen reports valid
     /// credentials. `nil` when the app launched without Okta env
-    /// vars (e.g. an Xcode preview), in which case sign-in is a
-    /// no-op rather than a crash.
+    /// vars (e.g. an Xcode preview or the unit-test host), in which
+    /// case sign-in is a no-op rather than a crash.
     let auth: OktaAuthenticating?
 
     init(auth: OktaAuthenticating?, session: UserSession? = nil) {
@@ -122,18 +122,34 @@ extension RootCoordinator {
     /// XCUITest can exercise the login→landing flow without an Okta
     /// tenant or a network. The fake path is GATED on the launch
     /// arg — no production build path can reach it.
+    ///
+    /// In the real path we use the THROWING `OktaConfig.validated(...)`
+    /// factory rather than the trapping `fromBundle()`: the unit-test
+    /// bundle hosts AcmeBank.app without injecting the Okta Info.plist
+    /// keys, so trapping at launch would crash the test runner before
+    /// XCTest could attach (manifesting as
+    /// "Early unexpected exit — test runner crashed before establishing
+    /// connection"). When config is absent or malformed we fall back to
+    /// `auth: nil`, which `signIn(...)` already handles as a no-op —
+    /// the same behaviour as an Xcode preview. Production builds with
+    /// the build-phase script in place always populate the keys, so
+    /// the fallback is invisible there.
     static func makeForLaunch(
         arguments: [String] = CommandLine.arguments,
-        environment: [String: String] = ProcessInfo.processInfo.environment
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        infoDictionary: [String: Any]? = Bundle.main.infoDictionary
     ) -> RootCoordinator {
         if arguments.contains("--use-fake-okta") {
             return RootCoordinator(auth: FakeLaunchAuth.fromEnvironment(environment))
         }
         // Real path: read Okta config from the Info.plist values
-        // injected at build time. `fromBundle()` traps if env vars
-        // are missing, which is the documented behaviour.
-        let config = OktaConfig.fromBundle()
-        return RootCoordinator(auth: OktaAuthService(config: config))
+        // injected at build time. Use the throwing factory so a
+        // missing-config launch (unit-test host, preview) degrades
+        // to a no-op `auth` instead of trapping.
+        if let config = try? OktaConfig.validated(infoDictionary: infoDictionary ?? [:]) {
+            return RootCoordinator(auth: OktaAuthService(config: config))
+        }
+        return RootCoordinator(auth: nil)
     }
 }
 
